@@ -1,7 +1,8 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { CreditCard, FileText, BarChart2, LogOut, Utensils } from 'lucide-react'
+import { CreditCard, FileText, BarChart2, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import clsx from 'clsx'
+import Logo from '@/components/common/Logo'
 
 const navBase = 'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors'
 const navActive = 'bg-orange-500 text-white shadow-sm'
@@ -15,9 +16,7 @@ export default function CashierLayout() {
       <aside className="w-60 flex-shrink-0 bg-white flex flex-col border-r border-gray-200 shadow-sm">
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Utensils size={16} className="text-white" />
-            </div>
+            <Logo />
             <div>
               <p className="font-bold text-sm text-gray-800">Self Restaurant</p>
               <p className="text-xs text-gray-400">POS Thu ngân</p>

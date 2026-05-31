@@ -1,8 +1,9 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { ChefHat, BookOpen, List, LogOut, Utensils } from 'lucide-react'
+import { ChefHat, BookOpen, List, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLES } from '@/constants/roles'
 import clsx from 'clsx'
+import Logo from '@/components/common/Logo'
 
 const navBase = 'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors'
 const navActive = 'bg-orange-500 text-white'
@@ -18,9 +19,7 @@ export default function KitchenLayout() {
         {/* Logo */}
         <div className="p-5 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Utensils size={16} className="text-white" />
-            </div>
+            <Logo />
             <div>
               <p className="font-bold text-sm text-gray-400">Self Restaurant</p>
               <p className="text-xs text-gray-400">Phân hệ bếp</p>
