@@ -7,7 +7,10 @@ let io
 
 export function initSocket(server) {
   io = new Server(server, {
-    cors: { origin: process.env.CLIENT_URL || 'http://localhost:3000', credentials: true },
+    cors: {
+      origin: ['http://localhost:3000', 'https://self-restaurant-managermant-system.vercel.app'],
+      credentials: true
+    },
     pingTimeout: 60000,
   })
 

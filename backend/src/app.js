@@ -15,7 +15,7 @@ const app = express()
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      imgSrc: ["'self'", 'data:', 'http://localhost:3000'],
+      imgSrc: ["'self'", 'data:', 'http://localhost:3000', 'https://self-restaurant-managermant-system.vercel.app'],
     },
   },
 }))
