@@ -20,15 +20,31 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl shadow-lg mb-4">
-            <Utensils size={32} className="text-white" />
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-orange-500 rounded-2xl shadow-lg mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+              <rect width="100%" height="100%" fill="#f97316"/>
+              
+              <g stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                
+                <g transform="rotate(-45 100 100)">
+                  <path d="M 104,88 L 104,15 C 80,25 80,80 88,88 " />
+                  <path d="M 98,110 L 100,165" />
+                </g>
+                
+                <g transform="rotate(45 100 100)">
+                  <path d="M 100,165 100,100 L 100,35 Z 100,15 " />
+                  <path d="M 76,35 L 76,60 C 76,85 124,85 124,60 L 124,35" />
+                </g>
+                
+              </g>
+            </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Self Restaurant</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Đăng nhập hệ thống quản lý</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+        <div className="bg-white dark:bg-gray-800 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Mã nhân viên</label>
