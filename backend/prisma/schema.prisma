@@ -1,0 +1,280 @@
+// Self Restaurant — Prisma Schema (SQL Server)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Giá trị hợp lệ (tham khảo — được validate trong code):
+//
+//  NhanVien.vaiTro          : "BEP_TRUONG" | "DAU_BEP" | "THU_NGAN"
+//  Ban.trangThai            : "TRONG" | "DANG_PHUC_VU" | "DONG_CUA"
+//  DongThucDonNgay.trangThai: "CO_SAN" | "HET_MON"
+//  DongOrder.trangThaiCheBien:"CHO_CHE_BIEN" | "DANG_LAM" | "HOAN_TAT" | "DA_HUY"
+//  HoaDonThanhToan.hinhThuc : "TIEN_MAT" | "CHUYEN_KHOAN"
+//  TheThanhVien.trangThai   : "ACTIVE" | "EXPIRED" | "LOCKED"
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── NHÂN VIÊN ─────────────────────────────────────────────────────────────────
+
+model NhanVien {
+  id          String   @id @default(cuid())
+  maNV        String   @unique @db.NVarChar(20)
+  hoTen       String   @db.NVarChar(100)
+  vaiTro      String   @db.NVarChar(20)   // BEP_TRUONG | DAU_BEP | THU_NGAN
+  matKhauHash String   @db.NVarChar(255)
+  ngayVaoLam  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  refreshToken    RefreshToken?
+  hoaDonThanhToan HoaDonThanhToan[]
+  baoCaoDoanhThu  BaoCaoDoanhThu[]
+
+  @@map("nhan_vien")
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  nhanVienId String   @unique
+  token      String   @db.NVarChar(512)
+  createdAt  DateTime @default(now())
+
+  nhanVien NhanVien @relation(fields: [nhanVienId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("refresh_tokens")
+}
+
+// ── BÀN ───────────────────────────────────────────────────────────────────────
+
+model Ban {
+  id        String   @id @default(cuid())
+  maBan     String   @unique @db.NVarChar(20)
+  tenBan    String   @db.NVarChar(100)
+  viTri     String?  @db.NVarChar(100)
+  sucChua   Int      @default(4)
+  trangThai String   @default("TRONG") @db.NVarChar(20)  // TRONG | DANG_PHUC_VU | DONG_CUA
+  createdAt DateTime @default(now())
+
+  hoaDonTamTinh HoaDonTamTinh[]
+
+  @@map("ban")
+}
+
+// ── MÓN ĂN ────────────────────────────────────────────────────────────────────
+
+model MonAn {
+  id        String   @id @default(cuid())
+  maMon     String   @unique @db.NVarChar(20)
+  tenMon    String   @db.NVarChar(200)
+  moTa      String?  @db.NVarChar(500)
+  hinhAnh   String?  @db.NVarChar(500)
+  donViTinh String   @default("phần") @db.NVarChar(50)
+  giaGoc    Float
+  danhMuc   String   @default("Món chính") @db.NVarChar(100)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dongThucDon DongThucDonNgay[]
+  dongOrder   DongOrder[]
+
+  @@map("mon_an")
+}
+
+// ── THỰC ĐƠN NGÀY ─────────────────────────────────────────────────────────────
+
+model ThucDonNgay {
+  id        String   @id @default(cuid())
+  ngay      DateTime @unique @db.Date
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dongThucDon DongThucDonNgay[]
+
+  @@map("thuc_don_ngay")
+}
+
+model DongThucDonNgay {
+  id              String   @id @default(cuid())
+  thucDonNgayId   String
+  monAnId         String
+  giaBanTrongNgay Float
+  trangThai       String   @default("CO_SAN") @db.NVarChar(20)  // CO_SAN | HET_MON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  thucDonNgay ThucDonNgay @relation(fields: [thucDonNgayId], references: [id], onDelete: Cascade,  onUpdate: NoAction)
+  monAn       MonAn       @relation(fields: [monAnId],       references: [id], onUpdate: NoAction)
+
+  @@unique([thucDonNgayId, monAnId])
+  @@map("dong_thuc_don_ngay")
+}
+
+// ── HÓA ĐƠN TẠM TÍNH & PHIẾU ORDER ──────────────────────────────────────────
+
+model HoaDonTamTinh {
+  id              String   @id @default(cuid())
+  maHoaDonTamTinh String   @unique @db.NVarChar(50)
+  banId           String
+  maTheThanhVien  String?  @db.NVarChar(50)
+  thoiDiemMo      DateTime @default(now())
+  tongTienTam     Float    @default(0)
+  daKhoa          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ban             Ban              @relation(fields: [banId],          references: [id], onUpdate: NoAction)
+  theThanhVien    TheThanhVien?    @relation(fields: [maTheThanhVien], references: [maThe], onUpdate: NoAction)
+  phieuOrders     PhieuOrder[]
+  hoaDonThanhToan HoaDonThanhToan?
+
+  @@map("hoa_don_tam_tinh")
+}
+
+model PhieuOrder {
+  id              String   @id @default(cuid())
+  hoaDonTamTinhId String
+  thoiDiemDat     DateTime @default(now())
+  ghiChu          String?  @db.NVarChar(500)
+  daXacNhan       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  hoaDonTamTinh HoaDonTamTinh @relation(fields: [hoaDonTamTinhId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dongOrders    DongOrder[]
+
+  @@map("phieu_order")
+}
+
+model DongOrder {
+  id               String    @id @default(cuid())
+  phieuOrderId     String
+  monAnId          String
+  soPhan           Int
+  donGia           Float
+  thanhTien        Float
+  ghiChu           String?   @db.NVarChar(300)
+  trangThaiCheBien String    @default("CHO_CHE_BIEN") @db.NVarChar(20)
+  // CHO_CHE_BIEN | DANG_LAM | HOAN_TAT | DA_HUY
+  thoiDiemHoanTat  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  phieuOrder PhieuOrder @relation(fields: [phieuOrderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  monAn      MonAn      @relation(fields: [monAnId],      references: [id], onUpdate: NoAction)
+
+  @@map("dong_order")
+}
+
+// ── HÓA ĐƠN THANH TOÁN (bất biến) ────────────────────────────────────────────
+
+model HoaDonThanhToan {
+  id                String   @id @default(cuid())
+  maHoaDon          String   @unique @db.NVarChar(50)
+  hoaDonTamTinhId   String   @unique
+  thuNganId         String
+  tenNhaHang        String   @db.NVarChar(200)
+  diaChi            String?  @db.NVarChar(300)
+  thoiGianThanhToan DateTime @default(now())
+  tongTienHoaDon    Float
+  hinhThucThanhToan String   @db.NVarChar(20)  // TIEN_MAT | CHUYEN_KHOAN
+  tienKhachDua      Float
+  tienTraLai        Float
+  maTheThanhVien    String?  @db.NVarChar(50)
+  diemCongThem      Float?
+  createdAt         DateTime @default(now())
+
+  hoaDonTamTinh HoaDonTamTinh @relation(fields: [hoaDonTamTinhId], references: [id], onUpdate: NoAction)
+  thuNgan       NhanVien      @relation(fields: [thuNganId],       references: [id], onUpdate: NoAction)
+  dongHoaDon    DongHoaDon[]
+  dongBaoCao    DongBaoCao[]
+
+  @@map("hoa_don_thanh_toan")
+}
+
+model DongHoaDon {
+  id                String @id @default(cuid())
+  hoaDonThanhToanId String
+  tenMon            String @db.NVarChar(200)
+  soPhan            Int
+  donGia            Float
+  thanhTien         Float
+
+  hoaDonThanhToan HoaDonThanhToan @relation(fields: [hoaDonThanhToanId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("dong_hoa_don")
+}
+
+// ── THẺ THÀNH VIÊN ────────────────────────────────────────────────────────────
+
+model TheThanhVien {
+  id           String   @id @default(cuid())
+  maThe        String   @unique @db.NVarChar(50)
+  hoTen        String   @db.NVarChar(100)
+  soDienThoai  String   @db.NVarChar(20)
+  ngayPhatHanh DateTime @default(now())
+  ngayHetHan   DateTime
+  tongDiem     Int      @default(0)
+  trangThai    String   @default("ACTIVE") @db.NVarChar(20)  // ACTIVE | EXPIRED | LOCKED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  hoaDonTamTinh  HoaDonTamTinh[]
+  lichSuTichDiem LichSuTichDiem[]
+
+  @@map("the_thanh_vien")
+}
+
+model LichSuTichDiem {
+  id              String   @id @default(cuid())
+  theThanhVienId  String
+  maHoaDon        String?  @db.NVarChar(50)
+  soTien          Float
+  diemCong        Int
+  tongDiemSauCong Int
+  ngayGiao        DateTime @default(now())
+
+  theThanhVien TheThanhVien @relation(fields: [theThanhVienId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("lich_su_tich_diem")
+}
+
+// ── BÁO CÁO DOANH THU ────────────────────────────────────────────────────────
+
+model BaoCaoDoanhThu {
+  id           String   @id @default(cuid())
+  maBaoCao     String   @unique @db.NVarChar(50)
+  ngayBaoCao   DateTime @db.Date
+  thoiDiemLap  DateTime @default(now())
+  nguoiLapId   String
+  tongSoHoaDon Int
+  tongDoanhThu Float
+  ghiChu       String?  @db.NVarChar(500)
+  createdAt    DateTime @default(now())
+
+  nguoiLap   NhanVien     @relation(fields: [nguoiLapId], references: [id], onUpdate: NoAction)
+  dongBaoCao DongBaoCao[]
+
+  @@map("bao_cao_doanh_thu")
+}
+
+model DongBaoCao {
+  id                String @id @default(cuid())
+  baoCaoDoanhThuId  String
+  hoaDonThanhToanId String
+  maMon             String @db.NVarChar(20)
+  tenMon            String @db.NVarChar(200)
+  soLuongDaBan      Int
+  doanhThuMon       Float
+
+  baoCaoDoanhThu  BaoCaoDoanhThu  @relation(fields: [baoCaoDoanhThuId],  references: [id], onDelete: Cascade, onUpdate: NoAction)
+  hoaDonThanhToan HoaDonThanhToan @relation(fields: [hoaDonThanhToanId], references: [id], onUpdate: NoAction)
+
+  @@map("dong_bao_cao")
+}
