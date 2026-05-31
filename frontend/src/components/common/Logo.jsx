@@ -13,7 +13,7 @@ export default function Logo() {
           <path d="M 98,110 L 100,165" />
         </g>
         <g transform="rotate(45 100 100)">
-          <path d="M 100,165 100,100 L 100,35 Z 100,15 " />
+          <path d="M 100,165 L 100,35" />
           <path d="M 76,35 L 76,60 C 76,85 124,85 124,60 L 124,35" />
         </g>
       </g>
