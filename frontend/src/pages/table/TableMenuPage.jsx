@@ -100,7 +100,10 @@ export default function TableMenuPage() {
                 {mon.moTa && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{mon.moTa}</p>}
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-orange-600 font-bold text-sm">{formatVND(dong.giaBanTrongNgay)}</span>
-                  <button onClick={() => add({ maMon: mon.maMon, tenMon: mon.tenMon, donGia: dong.giaBanTrongNgay })}
+                  <button onClick={(e) => {
+                    e.stopPropagation()
+                    add({ maMon: mon.maMon, tenMon: mon.tenMon, donGia: dong.giaBanTrongNgay })
+                  }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-all ${inCart ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600 hover:bg-orange-500 hover:text-white'}`}>
                     {inCart ? inCart.soPhan : '+'}
                   </button>

@@ -8,10 +8,12 @@ let io
 export function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: ['http://localhost:3000', 'https://self-restaurant-managermant-system.vercel.app'],
-      credentials: true
+      origin: 'http://localhost:3000',
+      credentials: true,
+      methods: ['GET', 'POST']
     },
     pingTimeout: 60000,
+    transports: ['websocket', 'polling'],
   })
 
   io.use((socket, next) => {

@@ -15,22 +15,12 @@ const app = express()
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      imgSrc: ["'self'", 'data:', 'http://localhost:3000', 'https://self-restaurant-managermant-system.vercel.app'],
+      imgSrc: ["'self'", 'data:', 'http://localhost:3000'],
     },
   },
 }))
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://self-restaurant-managermant-system.vercel.app',
-    ]
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
+  origin: 'http://localhost:3000',
   credentials: true,
 }))
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
