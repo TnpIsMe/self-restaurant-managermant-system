@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Plus, Trash2, ToggleLeft, ToggleRight, Save } from 'lucide-react'
 import { menuService } from '@/services/menuService'
@@ -15,6 +15,8 @@ export default function DailyMenuPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedFoods, setSelectedFoods] = useState([]) // [{ foodId, giaBan }]
   const [prices, setPrices] = useState({})
+  const [priceWarnings, setPriceWarnings] = useState([])
+  const [isWarningVisible, setIsWarningVisible] = useState(false)
 
   const { data: menu, isLoading } = useQuery({
     queryKey: ['menu', selectedDate],
@@ -56,14 +58,29 @@ export default function DailyMenuPage() {
 
   const handleAddToMenu = () => {
     if (selectedFoods.length === 0) return toast.error('Chọn ít nhất 1 món')
-    const items = selectedFoods.map((fId) => {
-      const food = allFoods.find((f) => f.id === fId)
-      return { monAnId: fId, giaBanTrongNgay: Number(prices[fId] || food?.giaGoc || 0) }
-    })
+
+    const warnings = []
+    const items = []
+    for (const foodId of selectedFoods) {
+      const food = allFoods.find((f) => f.id === foodId)
+      const minPrice = Number(food?.giaGoc ?? 0)
+      const rawPrice = Number(prices[foodId] ?? food?.giaGoc ?? 0)
+      const price = Number.isFinite(rawPrice) ? rawPrice : minPrice
+
+      if (price < minPrice) {
+        warnings.push({ foodId, foodName: food?.tenMon || 'Món này', message: 'Giá bán phải lớn hơn hoặc bằng giá gốc.' })
+        continue
+      }
+
+      items.push({ monAnId: foodId, giaBanTrongNgay: price })
+    }
+
+    setPriceWarnings(warnings)
+    if (warnings.length > 0) return
+
     if (!menu) {
       createMut.mutate(items)
     } else {
-      // Add items to existing menu
       menuService.update(menu.id, { addItems: items })
         .then(() => { qc.invalidateQueries(['menu', selectedDate]); toast.success('Đã thêm món vào thực đơn!') })
         .catch((e) => toast.error(e.response?.data?.message || 'Lỗi thêm món'))
@@ -75,7 +92,25 @@ export default function DailyMenuPage() {
 
   const toggleFoodSelect = (id) => {
     setSelectedFoods((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id])
+    setPriceWarnings((prev) => prev.filter((warning) => warning.foodId !== id))
+    setIsWarningVisible(false)
   }
+
+  useEffect(() => {
+    if (priceWarnings.length === 0) {
+      setIsWarningVisible(false)
+      return
+    }
+
+    setIsWarningVisible(true)
+    const hideTimer = window.setTimeout(() => setIsWarningVisible(false), 4000)
+    const clearTimer = window.setTimeout(() => setPriceWarnings([]), 4300)
+
+    return () => {
+      window.clearTimeout(hideTimer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [priceWarnings])
 
   const dongThucDon = menu?.dongThucDon ?? []
 
@@ -175,12 +210,25 @@ export default function DailyMenuPage() {
                 <p className="text-xs text-gray-400">{food.danhMuc} · Giá gốc: {formatVND(food.giaGoc)}</p>
               </div>
               {selectedFoods.includes(food.id) && (
-                <div onClick={(e) => e.stopPropagation()}>
+                <div onClick={(e) => e.stopPropagation()} className="relative z-10 flex w-32 flex-col items-end gap-1">
                   <input type="number" min={0}
-                    className="input w-28 text-sm"
-                    placeholder={String(food.giaGoc)}
+                    className="input w-full text-sm"
+                    placeholder="Nhập giá bán"
                     value={prices[food.id] ?? ''}
-                    onChange={(e) => setPrices({ ...prices, [food.id]: e.target.value })} />
+                    onChange={(e) => {
+                      setPrices({ ...prices, [food.id]: e.target.value })
+                      setPriceWarnings((prev) => prev.filter((warning) => warning.foodId !== food.id))
+                      setIsWarningVisible(false)
+                    }} />
+                  {priceWarnings.some((warning) => warning.foodId === food.id) && (
+                    <div className={`absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border bg-white/95 px-2.5 py-2 text-[13px] leading-5 text-red-600 shadow-[0_12px_28px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all duration-300 ${isWarningVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0 pointer-events-none'}`}>
+                      <div className="absolute -top-1.5 right-4 h-3 w-3 rotate-45 border-l border-t bg-white"></div>
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 text-sm">⚠️</span>
+                        <span>{priceWarnings.find((warning) => warning.foodId === food.id)?.message}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -201,10 +249,27 @@ export default function DailyMenuPage() {
 function PriceCell({ dong, onSave }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(dong.giaBanTrongNgay)
+  const minPrice = Number(dong.monAn?.giaGoc ?? 0)
+
+  const saveValue = () => {
+    const parsed = Number(val)
+    const nextValue = Number.isFinite(parsed) ? parsed : minPrice
+
+    if (parsed < minPrice) {
+      setVal(dong.giaBanTrongNgay)
+      setEditing(false)
+      return
+    }
+
+    setEditing(false)
+    if (nextValue !== dong.giaBanTrongNgay) onSave(nextValue)
+    setVal(nextValue)
+  }
+
   if (editing) return (
-    <input type="number" className="w-28 bg-gray-700 border border-orange-500 rounded px-2 py-1 text-sm text-right"
+    <input type="number" min={0} className="w-28 bg-gray-700 border border-orange-500 rounded px-2 py-1 text-sm text-right"
       value={val} onChange={(e) => setVal(e.target.value)} autoFocus
-      onBlur={() => { setEditing(false); if (Number(val) !== dong.giaBanTrongNgay) onSave(Number(val)) }}
+      onBlur={saveValue}
       onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
   )
   return (

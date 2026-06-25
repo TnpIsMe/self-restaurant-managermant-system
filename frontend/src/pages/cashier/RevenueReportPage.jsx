@@ -26,6 +26,10 @@ export default function RevenueReportPage() {
   const totalRevenue = reports.reduce((s, r) => s + r.tongDoanhThu, 0)
   const totalInv     = reports.reduce((s, r) => s + r.tongSoHoaDon, 0)
   const avgPerDay    = reports.length ? totalRevenue / reports.length : 0
+  const todayReport  = reports.find((report) => {
+    if (!report?.ngayBaoCao) return false
+    return new Date(report.ngayBaoCao).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]
+  })
 
   const createMut = useMutation({
     mutationFn: () => reportService.createDaily(),
@@ -34,8 +38,37 @@ export default function RevenueReportPage() {
       toast.success('✅ Đã lập báo cáo hôm nay!')
       setDetail(res.data)
     },
-    onError: (e) => toast.error(e.response?.data?.message || 'Lỗi lập báo cáo'),
+    onError: async (e) => {
+      if (e.response?.status === 409) {
+        try {
+          const { data } = await reportService.getAll()
+          qc.setQueryData(['reports'], data)
+          const today = new Date().toISOString().split('T')[0]
+          const existing = (data?.items ?? []).find((report) => new Date(report.ngayBaoCao).toISOString().split('T')[0] === today)
+          if (existing) {
+            setDetail(existing)
+          }
+          toast.success('Báo cáo hôm nay đã tồn tại')
+        } catch {
+          toast.success('Báo cáo hôm nay đã tồn tại')
+        }
+        return
+      }
+      toast.error(e.response?.data?.message || 'Lỗi lập báo cáo')
+    },
   })
+
+  const handleCreateReport = () => {
+    if (createMut.isPending) return
+    if (todayReport) {
+      setDetail(todayReport)
+      toast.success('📌 Báo cáo hôm nay đã tồn tại')
+      setConfirmCreate(false)
+      return
+    }
+    setConfirmCreate(false)
+    createMut.mutate()
+  }
 
   const handleExport = async (id, type) => {
     setExporting(`${id}-${type}`)
@@ -162,7 +195,7 @@ export default function RevenueReportPage() {
 
       {/* Detail Modal */}
       <ConfirmDialog open={confirmCreate} onClose={() => setConfirmCreate(false)}
-        onConfirm={() => { createMut.mutate(); setConfirmCreate(false) }}
+        onConfirm={handleCreateReport}
         loading={createMut.isPending}
         title="Lập báo cáo hôm nay"
         message="Bạn có chắc muốn lập báo cáo doanh thu cho hôm nay?"

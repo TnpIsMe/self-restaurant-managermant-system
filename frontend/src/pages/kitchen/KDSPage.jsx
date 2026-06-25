@@ -19,11 +19,12 @@ function groupByOrder(items) {
     const oid = item.phieuOrderId
     if (!map[oid]) {
       map[oid] = {
-        orderId:  oid,
-        banMa:    item.phieuOrder?.hoaDonTamTinh?.ban?.maBan ?? '?',
-        banTen:   item.phieuOrder?.hoaDonTamTinh?.ban?.tenBan ?? '',
-        thoiDiem: item.phieuOrder?.thoiDiemDat,
-        items:    [],
+        orderId:   oid,
+        banMa:     item.phieuOrder?.hoaDonTamTinh?.ban?.maBan ?? '?',
+        banTen:    item.phieuOrder?.hoaDonTamTinh?.ban?.tenBan ?? '',
+        thoiDiem:  item.phieuOrder?.thoiDiemDat,
+        orderNote: item.phieuOrder?.ghiChu ?? '',
+        items:     [],
       }
     }
     map[oid].items.push(item)
@@ -49,6 +50,10 @@ function calculateDishSummary(groups) {
   return Object.entries(dishMap)
     .map(([tenMon, totalSoPhan]) => ({ tenMon, totalSoPhan }))
     .sort((a, b) => b.totalSoPhan - a.totalSoPhan)
+}
+
+function getOrderNoteText(group) {
+  return group?.orderNote?.toString().trim() ? [group.orderNote.toString().trim()] : []
 }
 
 export default function KDSPage() {
@@ -148,7 +153,7 @@ export default function KDSPage() {
             <div>
               <div className="flex items-center gap-2 text-gray-400 text-sm font-medium mb-4">
                 <ChefHat size={14} className="text-orange-500" />
-                Đang chờ / Làm ({groups.length} order)
+                Danh sách Order ({groups.length} order)
               </div>
               <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
                 {groups.length === 0 ? (
@@ -178,7 +183,7 @@ export default function KDSPage() {
             <div>
               <div className="flex items-center gap-2 text-gray-400 text-sm font-medium mb-4">
                 <Utensils size={14} className="text-blue-500" />
-                Tổng 5 order đầu
+                Danh sách món ăn Order
               </div>
               <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
                 {dishSummary.length === 0 ? (
@@ -238,17 +243,31 @@ export default function KDSPage() {
                     const lastCompletedTime = Math.max(
                       ...order.items.map((i) => new Date(i.thoiDiemHoanTat || 0).getTime())
                     )
+                    const noteTexts = getOrderNoteText(order)
                     return (
                       <div key={order.orderId} className="bg-gray-800 border border-green-600/30 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-bold text-green-400">{order.banMa}</span>
                           <span className="text-xs text-gray-500">{order.banTen}</span>
                         </div>
+                        {noteTexts.length > 0 && (
+                          <div className="mb-2 rounded-md border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-2">
+                            <div className="flex items-start gap-1 text-xs text-yellow-200">
+                              <span>📝</span>
+                              <span className="break-words">{noteTexts[0]}</span>
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-1 mb-2">
                           {order.items.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between text-xs">
+                            <div key={item.id} className="flex items-start justify-between gap-2 text-xs">
                               <span className="text-gray-300 truncate">{item.monAn?.tenMon}</span>
-                              <span className="text-gray-500">×{item.soPhan}</span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-gray-500">×{item.soPhan}</span>
+                                {item.ghiChu && (
+                                  <span className="text-yellow-200 whitespace-nowrap">📝 {item.ghiChu}</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -285,6 +304,7 @@ function OrderCard({ group, onStart, onDone, onRevert, startLoading, doneLoading
   const dangCnt = group.items.filter((i) => i.trangThaiCheBien === 'DANG_LAM').length
   const xongCnt = group.items.filter((i) => i.trangThaiCheBien === 'HOAN_TAT').length
   const isAllDone = xongCnt === group.items.length && group.items.length > 0
+  const noteTexts = getOrderNoteText(group)
 
   return (
     <div className={`bg-gray-800 rounded-xl border border-gray-700 border-l-4 ${borderCls} overflow-hidden`}>
@@ -319,6 +339,14 @@ function OrderCard({ group, onStart, onDone, onRevert, startLoading, doneLoading
             {xongCnt > 0 && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-300 rounded text-xs">{xongCnt} xong</span>}
           </div>
         </div>
+        {noteTexts.length > 0 && (
+          <div className="mt-2 rounded-md border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-2">
+            <div className="flex items-start gap-1 text-xs text-yellow-200">
+              <span>📝</span>
+              <span className="break-words">{noteTexts[0]}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Items */}
@@ -332,13 +360,19 @@ function OrderCard({ group, onStart, onDone, onRevert, startLoading, doneLoading
             <div key={item.id} className="flex items-center gap-2 bg-gray-700/50 rounded-lg px-3 py-2.5">
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-white truncate">{item.monAn?.tenMon}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm text-white truncate">{item.monAn?.tenMon}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-orange-300 font-bold text-sm">×{item.soPhan}</span>
+                    {item.ghiChu && (
+                      <span className="text-yellow-200 text-xs whitespace-nowrap">📝 {item.ghiChu}</span>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-orange-300 font-bold text-sm">×{item.soPhan}</span>
                   <span className="text-gray-500 text-xs">{cfg.label}</span>
-                  {item.ghiChu && (
-                    <span className="text-yellow-400 text-xs truncate">📝 {item.ghiChu}</span>
-                  )}
                 </div>
               </div>
 

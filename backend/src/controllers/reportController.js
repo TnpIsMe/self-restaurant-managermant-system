@@ -30,8 +30,16 @@ export const createDailyReport = async (req, res, next) => {
     const todayEnd = endOfDay(new Date())
     const maBaoCao = `RPT-${yyyymmdd(today)}`
 
-    const existing = await prisma.baoCaoDoanhThu.findUnique({ where: { maBaoCao } })
-    if (existing) throw new AppError('Báo cáo ngày hôm nay đã tồn tại', 409)
+    const existing = await prisma.baoCaoDoanhThu.findFirst({
+      where: {
+        OR: [
+          { maBaoCao },
+          { ngayBaoCao: { gte: today, lte: todayEnd } },
+        ],
+      },
+      include: reportInclude,
+    })
+    if (existing) return res.status(200).json(existing)
 
     const hoaDons = await prisma.hoaDonThanhToan.findMany({
       where:   { thoiGianThanhToan: { gte: today, lte: todayEnd } },

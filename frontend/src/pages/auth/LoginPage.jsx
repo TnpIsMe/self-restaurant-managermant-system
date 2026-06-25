@@ -24,20 +24,18 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-orange-500 rounded-2xl shadow-lg mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
-              <rect width="100%" height="100%" fill="#f97316"/>
-              
-              <g stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                
+              <rect width="100%" height="100%" fill="#f97316" />
+
+              <g stroke="#ffffff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none">
                 <g transform="rotate(-45 100 100)">
-                  <path d="M 104,88 L 104,15 C 80,25 80,80 88,88 " />
-                  <path d="M 98,110 L 100,165" />
+                  <path d="M 104 88 L 104 15 C 80 25 80 80 88 88" />
+                  <path d="M 98 110 L 100 165" />
                 </g>
-                
+
                 <g transform="rotate(45 100 100)">
-                  <path d="M 100,165 100,100 L 100,35 Z 100,15 " />
-                  <path d="M 76,35 L 76,60 C 76,85 124,85 124,60 L 124,35" />
+                  <path d="M 100 165 L 100 100 L 100 35 L 100 15" />
+                  <path d="M 76 35 L 76 60 C 76 85 124 85 124 60 L 124 35" />
                 </g>
-                
               </g>
             </svg>
           </div>

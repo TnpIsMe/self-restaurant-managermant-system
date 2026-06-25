@@ -13,6 +13,30 @@ function parseDate(str) {
   return new Date(Date.UTC(y, m - 1, d))
 }
 
+function normalizePrice(value) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+async function validateMenuItems(items, tx = prisma) {
+  const validated = []
+  for (const item of items || []) {
+    const monAn = await tx.monAn.findUnique({ where: { id: item.monAnId } })
+    if (!monAn) continue
+
+    const price = normalizePrice(item.giaBanTrongNgay)
+    if (price < monAn.giaGoc) {
+      throw new AppError(`Giá bán của ${monAn.tenMon} không được thấp hơn giá gốc`, 400)
+    }
+
+    validated.push({
+      monAnId: item.monAnId,
+      giaBanTrongNgay: price,
+    })
+  }
+  return validated
+}
+
 const menuInclude = {
   dongThucDon: {
     include: { monAn: true },
@@ -64,11 +88,14 @@ export const createMenu = async (req, res, next) => {
 
       if (!existing) throw new AppError(`Thực đơn ngày ${ngay} không tồn tại`, 404)
 
+      const validatedItems = await validateMenuItems(addItems)
+      if (!validatedItems.length) throw new AppError('Không có món hợp lệ để thêm vào thực đơn', 400)
+
       await prisma.dongThucDonNgay.createMany({
-        data: addItems.map((i) => ({
+        data: validatedItems.map((i) => ({
           thucDonNgayId:   existing.id,
           monAnId:         i.monAnId,
-          giaBanTrongNgay: Number(i.giaBanTrongNgay),
+          giaBanTrongNgay: i.giaBanTrongNgay,
         })),
       })
       return res.json(
@@ -87,10 +114,7 @@ export const createMenu = async (req, res, next) => {
           data: {
             dongThucDon: {
               deleteMany: {},
-              create: (items || []).map((i) => ({
-                monAnId:         i.monAnId,
-                giaBanTrongNgay: Number(i.giaBanTrongNgay),
-              })),
+              create: await validateMenuItems(items || []),
             },
           },
           include: menuInclude,
@@ -101,10 +125,7 @@ export const createMenu = async (req, res, next) => {
         data: {
           ngay: date,
           dongThucDon: {
-            create: (items || []).map((i) => ({
-              monAnId:         i.monAnId,
-              giaBanTrongNgay: Number(i.giaBanTrongNgay),
-            })),
+            create: await validateMenuItems(items || []),
           },
         },
         include: menuInclude,
@@ -118,11 +139,14 @@ export const updateMenu = async (req, res, next) => {
   try {
     const { addItems } = req.body
     if (addItems?.length) {
+      const validatedItems = await validateMenuItems(addItems)
+      if (!validatedItems.length) throw new AppError('Không có món hợp lệ để thêm vào thực đơn', 400)
+
       await prisma.dongThucDonNgay.createMany({
-        data: addItems.map((i) => ({
+        data: validatedItems.map((i) => ({
           thucDonNgayId:   req.params.id,
           monAnId:         i.monAnId,
-          giaBanTrongNgay: Number(i.giaBanTrongNgay),
+          giaBanTrongNgay: i.giaBanTrongNgay,
         })),
       })
     }
@@ -139,11 +163,23 @@ export const updateMenuItem = async (req, res, next) => {
     if (trangThai && !valid.includes(trangThai))
       throw new AppError(`trangThai phải là: ${valid.join(' | ')}`, 400)
 
+    const existingItem = await prisma.dongThucDonNgay.findUnique({
+      where: { id: req.params.itemId },
+      include: { monAn: true },
+    })
+
+    if (!existingItem) throw new AppError('Không tìm thấy món trong thực đơn', 404)
+
+    const parsedPrice = giaBanTrongNgay !== undefined ? normalizePrice(giaBanTrongNgay) : undefined
+    if (parsedPrice !== undefined && parsedPrice < existingItem.monAn.giaGoc) {
+      throw new AppError(`Giá bán của ${existingItem.monAn.tenMon} không được thấp hơn giá gốc`, 400)
+    }
+
     const item = await prisma.dongThucDonNgay.update({
       where: { id: req.params.itemId },
       data: {
         ...(trangThai       && { trangThai }),
-        ...(giaBanTrongNgay && { giaBanTrongNgay: Number(giaBanTrongNgay) }),
+        ...(parsedPrice !== undefined && { giaBanTrongNgay: parsedPrice }),
       },
       include: { monAn: true },
     })
