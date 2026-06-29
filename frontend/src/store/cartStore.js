@@ -16,7 +16,25 @@ export const useCartStore = create(
         }
       },
 
-      remove: (maMon) => set({ items: get().items.filter((i) => i.maMon !== maMon) }),
+      remove: (maMon) => {
+        try {
+          set({ items: get().items.filter((i) => i.maMon !== maMon) })
+          return true
+        } catch {
+          return false
+        }
+      },
+
+      restore: (item) => {
+        const existing = get().items.find((i) => i.maMon === item.maMon)
+        if (existing) {
+          set({
+            items: get().items.map((i) => i.maMon === item.maMon ? { ...i, soPhan: item.soPhan, ghiChu: item.ghiChu || '' } : i),
+          })
+        } else {
+          set({ items: [...get().items, { ...item }] })
+        }
+      },
 
       updateQty: (maMon, soPhan) => {
         if (soPhan <= 0) return get().remove(maMon)
