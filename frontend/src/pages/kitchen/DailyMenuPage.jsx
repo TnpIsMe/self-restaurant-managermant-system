@@ -8,9 +8,16 @@ import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import toast from 'react-hot-toast'
 
+function getLocalDateString(d = new Date()) {
+  const year  = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day   = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function DailyMenuPage() {
   const qc = useQueryClient()
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   const [selectedDate, setSelectedDate] = useState(today)
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedFoods, setSelectedFoods] = useState([]) // [{ foodId, giaBan }]

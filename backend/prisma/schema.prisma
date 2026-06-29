@@ -261,6 +261,7 @@ model BaoCaoDoanhThu {
   nguoiLap   NhanVien     @relation(fields: [nguoiLapId], references: [id], onUpdate: NoAction)
   dongBaoCao DongBaoCao[]
 
+  @@unique([ngayBaoCao])
   @@map("bao_cao_doanh_thu")
 }
 

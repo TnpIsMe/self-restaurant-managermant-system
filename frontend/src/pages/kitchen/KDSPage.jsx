@@ -123,8 +123,7 @@ export default function KDSPage() {
           <div>
             <h1 className="text-xl font-bold">Kitchen Display System</h1>
             <p className="text-gray-400 text-sm">
-              {pending.length} món đang chờ / làm
-              {completedOrders.length > 0 && ` · ${completedOrders.length} order hoàn tất`}
+              Danh sách Order
             </p>
           </div>
         </div>
@@ -203,9 +202,9 @@ export default function KDSPage() {
                           <span className="text-lg font-bold text-blue-400">×{dish.totalSoPhan}</span>
                         </div>
                         <div className="text-xs text-gray-400 mb-2 space-y-1">
-                          {choItems.length > 0 && <div className="text-yellow-400">⏳ {choItems.length} chờ</div>}
-                          {dangItems.length > 0 && <div className="text-orange-400">🔥 {dangItems.length} đang làm</div>}
-                          {xongItems.length > 0 && <div className="text-green-400">✓ {xongItems.length} xong</div>}
+                          {choItems.length > 0 && <div className="text-yellow-400">⏳ Đang chờ</div>}
+                          {dangItems.length > 0 && <div className="text-orange-400">🔥 Đang làm</div>}
+                          {xongItems.length > 0 && <div className="text-green-400">✓ Đã xong</div>}
                         </div>
                         {choItems.length > 0 && (
                           <button

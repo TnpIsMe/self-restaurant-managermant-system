@@ -17,6 +17,14 @@ export default function RevenueReportPage() {
   const [confirmCreate, setConfirmCreate] = useState(false)
   const [exporting,  setExporting]  = useState(null)
 
+  const isSameDate = (a, b) => {
+    const da = new Date(a)
+    const db = new Date(b)
+    return da.getFullYear() === db.getFullYear()
+      && da.getMonth() === db.getMonth()
+      && da.getDate() === db.getDate()
+  }
+
   const { data, isLoading } = useQuery({
     queryKey: ['reports'],
     queryFn:  () => reportService.getAll().then((r) => r.data),
@@ -26,16 +34,11 @@ export default function RevenueReportPage() {
   const totalRevenue = reports.reduce((s, r) => s + r.tongDoanhThu, 0)
   const totalInv     = reports.reduce((s, r) => s + r.tongSoHoaDon, 0)
   const avgPerDay    = reports.length ? totalRevenue / reports.length : 0
-  const todayReport  = reports.find((report) => {
-    if (!report?.ngayBaoCao) return false
-    return new Date(report.ngayBaoCao).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]
-  })
-
   const createMut = useMutation({
     mutationFn: () => reportService.createDaily(),
     onSuccess:  (res) => {
       qc.invalidateQueries(['reports'])
-      toast.success('✅ Đã lập báo cáo hôm nay!')
+      toast.success('Đã lập báo cáo hôm nay!')
       setDetail(res.data)
     },
     onError: async (e) => {
@@ -43,8 +46,7 @@ export default function RevenueReportPage() {
         try {
           const { data } = await reportService.getAll()
           qc.setQueryData(['reports'], data)
-          const today = new Date().toISOString().split('T')[0]
-          const existing = (data?.items ?? []).find((report) => new Date(report.ngayBaoCao).toISOString().split('T')[0] === today)
+          const existing = (data?.items ?? []).find((report) => isSameDate(report.ngayBaoCao, new Date()))
           if (existing) {
             setDetail(existing)
           }
@@ -60,12 +62,6 @@ export default function RevenueReportPage() {
 
   const handleCreateReport = () => {
     if (createMut.isPending) return
-    if (todayReport) {
-      setDetail(todayReport)
-      toast.success('📌 Báo cáo hôm nay đã tồn tại')
-      setConfirmCreate(false)
-      return
-    }
     setConfirmCreate(false)
     createMut.mutate()
   }

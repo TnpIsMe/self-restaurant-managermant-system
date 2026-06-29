@@ -6,11 +6,21 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 
+function parseDate(str) {
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d))
+}
+function getLocalDateString(d = new Date()) {
+  const year  = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day   = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 function startOfDay(d) {
-  const r = new Date(d); r.setHours(0,0,0,0); return r
+  const r = new Date(d); r.setUTCHours(0,0,0,0); return r
 }
 function endOfDay(d) {
-  const r = new Date(d); r.setHours(23,59,59,999); return r
+  const r = new Date(d); r.setUTCHours(23,59,59,999); return r
 }
 function yyyymmdd(d) {
   const y = d.getFullYear()
@@ -26,59 +36,55 @@ const reportInclude = {
 
 export const createDailyReport = async (req, res, next) => {
   try {
-    const today    = startOfDay(new Date())
-    const todayEnd = endOfDay(new Date())
-    const maBaoCao = `RPT-${yyyymmdd(today)}`
+    const todayStr = getLocalDateString()
+    const today    = parseDate(todayStr)
+    const todayEnd = endOfDay(today)
+    const maBaoCao = `RPT-${todayStr}`
 
-    const existing = await prisma.baoCaoDoanhThu.findFirst({
-      where: {
-        OR: [
-          { maBaoCao },
-          { ngayBaoCao: { gte: today, lte: todayEnd } },
-        ],
-      },
-      include: reportInclude,
-    })
-    if (existing) return res.status(200).json(existing)
+    const report = await prisma.$transaction(async (tx) => {
+      const hoaDons = await tx.hoaDonThanhToan.findMany({
+        where: { thoiGianThanhToan: { gte: today, lte: todayEnd } },
+        include: { dongHoaDon: true },
+      })
+      if (!hoaDons.length) throw new AppError('Không có hóa đơn nào trong ngày hôm nay', 400)
 
-    const hoaDons = await prisma.hoaDonThanhToan.findMany({
-      where:   { thoiGianThanhToan: { gte: today, lte: todayEnd } },
-      include: { dongHoaDon: true },
-    })
-    if (!hoaDons.length) throw new AppError('Không có hóa đơn nào trong ngày hôm nay', 400)
+      const tongDoanhThu = hoaDons.reduce((s, h) => s + h.tongTienHoaDon, 0)
+      const monMap = {}
+      hoaDons.forEach((hd) => {
+        hd.dongHoaDon.forEach((d) => {
+          if (!monMap[d.tenMon]) {
+            monMap[d.tenMon] = { tenMon: d.tenMon, soLuong: 0, doanhThu: 0, hoaDonId: hd.id }
+          }
+          monMap[d.tenMon].soLuong  += d.soPhan
+          monMap[d.tenMon].doanhThu += d.thanhTien
+        })
+      })
 
-    const tongDoanhThu = hoaDons.reduce((s, h) => s + h.tongTienHoaDon, 0)
+      await tx.baoCaoDoanhThu.deleteMany({
+        where: { ngayBaoCao: { gte: today, lte: todayEnd } },
+      })
 
-    const monMap = {}
-    hoaDons.forEach((hd) => {
-      hd.dongHoaDon.forEach((d) => {
-        if (!monMap[d.tenMon]) {
-          monMap[d.tenMon] = { tenMon: d.tenMon, soLuong: 0, doanhThu: 0, hoaDonId: hd.id }
-        }
-        monMap[d.tenMon].soLuong  += d.soPhan
-        monMap[d.tenMon].doanhThu += d.thanhTien
+      return await tx.baoCaoDoanhThu.create({
+        data: {
+          maBaoCao,
+          ngayBaoCao:   today,
+          nguoiLapId:   req.user.id,
+          tongSoHoaDon: hoaDons.length,
+          tongDoanhThu,
+          dongBaoCao: {
+            create: Object.values(monMap).map((m) => ({
+              hoaDonThanhToanId: m.hoaDonId,
+              maMon:             m.tenMon,
+              tenMon:            m.tenMon,
+              soLuongDaBan:      m.soLuong,
+              doanhThuMon:       m.doanhThu,
+            })),
+          },
+        },
+        include: reportInclude,
       })
     })
 
-    const report = await prisma.baoCaoDoanhThu.create({
-      data: {
-        maBaoCao,
-        ngayBaoCao:   today,
-        nguoiLapId:   req.user.id,
-        tongSoHoaDon: hoaDons.length,
-        tongDoanhThu,
-        dongBaoCao: {
-          create: Object.values(monMap).map((m) => ({
-            hoaDonThanhToanId: m.hoaDonId,
-            maMon:             m.tenMon,
-            tenMon:            m.tenMon,
-            soLuongDaBan:      m.soLuong,
-            doanhThuMon:       m.doanhThu,
-          })),
-        },
-      },
-      include: reportInclude,
-    })
     res.status(201).json(report)
   } catch (e) { next(e) }
 }
