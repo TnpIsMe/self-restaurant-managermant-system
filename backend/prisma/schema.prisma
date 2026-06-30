@@ -10,8 +10,6 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Giá trị hợp lệ (tham khảo — được validate trong code):
-//
 //  NhanVien.vaiTro          : "BEP_TRUONG" | "DAU_BEP" | "THU_NGAN"
 //  Ban.trangThai            : "TRONG" | "DANG_PHUC_VU" | "DONG_CUA"
 //  DongThucDonNgay.trangThai: "CO_SAN" | "HET_MON"
@@ -188,6 +186,8 @@ model HoaDonThanhToan {
   tienTraLai        Float
   maTheThanhVien    String?  @db.NVarChar(50)
   diemCongThem      Float?
+  soLanIn           Int      @default(0)
+  thoiGianInGanNhat DateTime?
   createdAt         DateTime @default(now())
 
   hoaDonTamTinh HoaDonTamTinh @relation(fields: [hoaDonTamTinhId], references: [id], onUpdate: NoAction)

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "nodemon",
     "start": "node src/server.js",
+    "test": "vitest run",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
     "db:reset": "prisma migrate reset --force && node prisma/seed.js",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
-    "prisma": "^5.15.0"
+    "prisma": "^5.15.0",
+    "vitest": "^1.4.0"
   }
 }

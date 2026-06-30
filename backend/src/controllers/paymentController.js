@@ -34,6 +34,7 @@ async function buildHoaDon(invoiceId, thuNganId, hinhThuc, tienKhachDua) {
     throw new AppError(`Tiền khách đưa (${tienKhachDua}) không đủ, cần ${tongTien}`, 400)
 
   const maHoaDon = await generateInvoiceCode()
+  const diemCong = hd.theThanhVien ? Math.floor(tongTien / 1000) : 0
 
   const hoaDon = await prisma.hoaDonThanhToan.create({
     data: {
@@ -47,6 +48,7 @@ async function buildHoaDon(invoiceId, thuNganId, hinhThuc, tienKhachDua) {
       tienKhachDua:      Number(tienKhachDua),
       tienTraLai:        Number(tienKhachDua) - tongTien,
       maTheThanhVien:    hd.maTheThanhVien ?? null,
+      diemCongThem:      hd.theThanhVien ? diemCong : null,
       dongHoaDon: {
         create: allItems.map((d) => ({
           tenMon:    d.monAn.tenMon,
@@ -64,7 +66,6 @@ async function buildHoaDon(invoiceId, thuNganId, hinhThuc, tienKhachDua) {
 
   // Tích điểm thẻ thành viên
   if (hd.theThanhVien) {
-    const diemCong = Math.floor(tongTien / 1000)
     await prisma.$transaction([
       prisma.theThanhVien.update({
         where: { maThe: hd.maTheThanhVien },

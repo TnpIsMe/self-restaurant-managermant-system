@@ -163,6 +163,15 @@ export default function InvoiceHistoryPage() {
               <span className="text-gray-700">Tổng cộng</span>
               <span className="text-orange-600">{formatVND(detail.tongTienHoaDon)}</span>
             </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => window.open(`/api/invoices/${detail.id}/receipt`, '_blank', 'noopener,noreferrer')}
+                className="btn-primary btn-sm gap-2"
+              >
+                <Download size={14} /> In lại
+              </button>
+            </div>
           </div>
         )}
       </Modal>

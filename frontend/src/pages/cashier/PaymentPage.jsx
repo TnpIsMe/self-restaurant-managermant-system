@@ -63,8 +63,9 @@ export default function PaymentPage() {
   })
   const cashMut = useMutation({
     mutationFn: () => paymentService.payCash(invoice.id, Number(cashInput)),
-    onSuccess:  () => {
+    onSuccess:  (res) => {
       toast.success('💰 Thanh toán thành công!')
+      window.open(`/api/invoices/${res.data.id}/receipt`, '_blank', 'noopener,noreferrer')
       qc.invalidateQueries(['tables'])
       setPayModal(null); setCashInput(''); setCardInput(''); setCardInfo(null)
       setSelectedTableId(null)
@@ -78,8 +79,9 @@ export default function PaymentPage() {
   })
   const confirmMut = useMutation({
     mutationFn: () => paymentService.confirmTransfer(invoice.id),
-    onSuccess:  () => {
+    onSuccess:  (res) => {
       toast.success('✅ Xác nhận chuyển khoản thành công!')
+      window.open(`/api/invoices/${res.data.id}/receipt`, '_blank', 'noopener,noreferrer')
       qc.invalidateQueries(['tables'])
       setPayModal(null); setQrData(null); setCardInput(''); setCardInfo(null)
       setSelectedTableId(null)
